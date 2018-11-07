@@ -47,6 +47,7 @@ function _log( $msg1, $msg2 = '' ) {
  */
 function _prepare_run() {
     global $_config;
+    _merge_raw_data_into_request();
     $run = _in('run') or _error('no_run', 'No run code provided');
     $actions = explode('.', $run, 3);
     $_config['folder'] = $actions[0];
@@ -111,4 +112,72 @@ function _error( $code, $message ) {
 function _success( $data ) {
     echo json_encode($data);
     exit;
+}
+
+
+function _merge_raw_data_into_request() {
+    $json_params = file_get_contents( "php://input" );
+    if ( strlen($json_params) > 0 ) {
+        $arr = json_decode( $json_params, true );
+        if ( json_last_error() == JSON_ERROR_NONE ) {
+            return $_REQUEST = array_merge( $_REQUEST, $arr );
+        }
+    }
+    return null;
+}
+
+
+/**
+ *
+ * @param string $idx_or_relation idx or relation
+ * @param string $code
+ *
+ * @return mixed - same as db()->row
+ */
+function _get_file($idx_or_relation, $code = null) {
+    if ( $code ) {
+        // relation & code
+        $row = db()->row("SELECT * FROM " . _table('files') . " WHERE relation='$idx_or_relation' AND code='$code'");
+    } else {
+        // idx
+        $row = db()->row("SELECT * FROM " . _table('files') . " WHERE idx=$idx_or_relation");
+    }
+    return $row;
+}
+/**
+ *
+ * @desc to debug ` $ tail -f debug.log | grep _delete_file `
+ * @param $idx_or_relation
+ * @param null $code
+ * @return bool
+ *      true on success to delete a file
+ *      false on failure of deleting a file
+ *      2 - if there is not file to delete.
+ *
+ */
+function _delete_file($idx_or_relation, $code = null) {
+    _log("_delete_file: idx_or_relation: $idx_or_relation, code: $code");
+    $row = _get_file( $idx_or_relation, $code );
+    if ( $row ) {
+        /**
+         * If file exists, delete the file.
+         */
+        $file = FILE_UPLOAD_DIR . $row['path'];
+        if ( file_exists($file) ) {
+            $re = @unlink( $file );
+            if ( ! $re ) {
+                _log('_delete_file: Failed to delete file: ', $file);
+                return false;
+            }
+        }
+        $re = db()->table('files')->where(" idx=$row[idx] ")->delete();
+        if ( ! $re ) {
+            _log("_delete_file: Failed to delete database record: idx: $row[idx]");
+            return false;
+        }
+        return true;
+    } else {
+        _log("_delete_file: File record does not exists on DB. idx_or_relation: $idx_or_relation, code: $code");
+        return 2;
+    }
 }

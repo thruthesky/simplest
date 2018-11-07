@@ -127,11 +127,29 @@ class SimplestDB {
         $this->table_name = DB_PREFIX . $table_name;
         return $this;
     }
+
+    /**
+     * alias of record.
+     * @param $fields
+     * @return SimplestDB
+     */
+    public function fields($fields) {
+        return $this->record($fields);
+    }
+
+    /**
+     * @param $fields
+     * @return SimplestDB
+     */
     public function record($fields) {
         $this->fields = $fields;
         return $this;
     }
 
+    /**
+     * @param $cond
+     * @return SimplestDB
+     */
     public function where($cond) {
         $this->where = $cond;
         return $this;
@@ -191,8 +209,12 @@ class SimplestDB {
             $sets[] = "`$k`='" . $this->db->escape_string($v) ."'";
         }
         $set = implode(", ", $sets);
-        $where = null;
-        if ( $this->where ) $where = "WHERE {$this->where}";
+
+        /**
+         * WHERE
+         */
+        if ( ! $this->where ) return false;
+        $where = "WHERE {$this->where}";
         $q = "UPDATE {$this->table_name} SET $set $where";
         _log("DB::update() query: $q");
         $re = $this->db->query($q);

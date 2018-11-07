@@ -16,6 +16,7 @@ define('LOG_FILE', FILE_DIR . 'debug.log');
 define('ROOT_DIR_URL', 'https://seo.sonub.com/simplest/');
 
 define('FILE_DIR_URL', ROOT_DIR_URL . 'files/');
+define('FILE_UPLOAD_DIR_URL', FILE_DIR_URL . 'uploads/');
 
 
 define('DB_PREFIX', 'sp_');
